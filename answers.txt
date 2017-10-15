@@ -1,0 +1,52 @@
+1. What was the running time for your three reddit-averages implementations? How can you explain the differences?
+
+This is what I got:
+
+using default CPython:
+2A - 1 m 10 sec.
+sql (w/o schema) - 1 min 15 sec
+sql (with schema) - around 55 sec. 
+
+2A took the longest because I had to instruct the program on how to read, group and aggregate the result, which may not be the most optimized way. Using SQL in this case might lead to optimization.
+
+SQL without schema is expensive because (as explained in the assignment) "If you don't specify a schema for JSON input, the data must be read twice: once to determine the schema, and again to actually load the data. That can be a big cost." That's why it took more time than the case where I defined the schema.  
+
+2. How much difference did Python implementation make (PyPy vs the default CPython)? Why would it make so much/little difference sometimes?
+
+Here are the numbers:
+Using pypy:
+2A - 45 sec
+sql (w/o schema) - 1 min
+sql (with schema) - around 50 sec. 
+
+(refer to above for CPython times)
+
+PyPy implementation made a significant difference in case of old 2A assignment but not in case of sql version. Probably because SQL is already optimized it makes more sense to use SQL to do more most of the "heavy lifting" whereas in case of non-spark, the developer needs to specify exactly how to do that. Again this can be good or bad depending on the implementation from the developer and how the actual logic is written for SQL. Sometimes it is not going to effect a lot because SQL is doing thing the most optimized way possible, so in those cases it doesn't make sense.
+
+
+
+3. How does your Spark implementation running time compare to my MapReduce time? What do you think accounts for the difference?
+
+It took me about 1 min. to finish. Whereas yours 1.28 mins. The difference is arrived due to the fact that MapReduce does a lot of IO Operations; reading from disk and storing in disk is expensive operation. Whereas in my implementation I used Spark which does most of the stuff in memory which is faster. 
+
+4. What statements did you execute to get the total number of bytes transferred (including reading the Parquet data)? What was the number?
+
+
+>>> spark = SparkSession.builder.getOrCreate()
+>>> reddit_rows = spark.read.parquet("logs-out")
+>>> reddit_rows.createOrReplaceTempView('reddit_rows')
+>>> total_bys = spark.sql("""
+     	SELECT SUM(bys)
+     	FROM reddit_rows
+ 	""")
+    
+>>> total_bys.show()
+
+output:
+>>> total_bys.show()
++-----------+
+|   sum(bys)|
++-----------+
+|3.6133736E7|
++-----------+
+
