@@ -30,11 +30,11 @@ def main():
 
     p = t.filter((col("TYPE") == "TMAX") | (col("TYPE") == "TMIN")) \
         .groupby('DATE', 'ID').agg( (2 * max("VALUE1") - sum("VALUE1")).alias("Range"))
-        
+
     max_table = p.groupby('DATE').agg(max("Range").alias('MaxRange'))
     
-    cond2 = [p['DATE'] == max_table['DATE'], p['Range'] == max_table['MaxRange']]
-    df_result = p.join(max_table, cond2, 'inner').select(p['DATE'], p['ID'], p['Range']).sort(col("DATE"))
+    cond = [p['DATE'] == max_table['DATE'], p['Range'] == max_table['MaxRange']]
+    df_result = p.join(max_table, cond, 'inner').select(p['DATE'], p['ID'], p['Range']).sort(col("DATE"))
 
     df_result.show()
 
