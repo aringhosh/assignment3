@@ -45,6 +45,7 @@ def getChildForNode(n):
 	matchingRows = graphedges.where(graphedges['source'] == n)
 	# matchingRows.select('destination').show()
 	childs = matchingRows.select('destination').rdd.map(lambda x: x.destination)
+	print('node ', n , 'child ', childs.collect())
 	return (childs)
 
 def noMatchFound(knownpaths):
@@ -52,12 +53,33 @@ def noMatchFound(knownpaths):
 	emptyPath = sqlContext.createDataFrame(sc.emptyRDD(), knownpaths.schema)
 	return (emptyPath)
 
-def foo(n,s,d, knownpaths):
-	knownpaths = insertRow(n,s,d, knownpaths)
-	print(n,s,d)
-	knownpaths.show()
+def isRowExisting(df, val_n):
+	# exists = df.where( (df.node == val_n) & (df.source == val_s)).rdd.count()
+	exists = df.where( (df.node != val_n) & (df.source == val_n)).rdd.count()
+	# exists = df.where((df.source == val_s)).rdd.count()
+	if exists > 0:
+		return True
+	else:
+		return False
 
-	if(d == 6): # only 6 iterations for now
+def foo(n,s,d, knownpaths):
+
+	print(n,s,d)
+	# knownpaths.show()
+	#if row exists ; skip
+	# print('row really exists') 
+	# print(isRowExisting(knownpaths, n, s))
+
+	# if isRowExisting(knownpaths, n):
+	# 	print('node already traveresed ', n)
+	# 	knownpaths.show()
+	# 	return(knownpaths)
+
+	knownpaths = insertRow(n,s,d, knownpaths)
+
+	# knownpaths.show()
+
+	if(d == 6): # only 6 iterations for now (shouldn't be more than no. of nodes)
 		return(noMatchFound(knownpaths))
 
 	if n == dest_node:
@@ -67,7 +89,14 @@ def foo(n,s,d, knownpaths):
 		childs = getChildForNode(n)
 		if (childs.count() > 0):
 			for c in childs.collect():
-				return(foo(c, n, d+1, knownpaths))
+				print('for:', childs.collect())
+				# check if row exists for c or not
+				if isRowExisting(knownpaths, c) == False:					
+					return(foo(c, n, d+1, knownpaths))
+				else:
+					print('node already traveresed ', n)
+					knownpaths.show()
+					continue
 		else:
 			return(noMatchFound(knownpaths))
 
