@@ -1,9 +1,8 @@
 import sys
-from pyspark.sql import SparkSession, Row, functions
+from pyspark.sql import SparkSession, functions
 from pyspark.sql.types import StructType, StructField, StringType, LongType
 from pyspark.sql.context import SQLContext
-from pyspark.sql.functions import udf, max, col
-import pyspark.sql.functions as F
+from pyspark.sql.functions import udf, max
 
 
 spark = SparkSession.builder.appName('example application').getOrCreate()
