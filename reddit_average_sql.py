@@ -17,18 +17,20 @@ def main():
     schema = types.StructType([
     types.StructField('_subreddit', types.StringType(), False),
     types.StructField('_score', types.FloatType(), False)])
+
     comments = spark.read.json(inputs, schema)
+    comments.show()
     # averages = comments.select('subreddit', 'score').groupby('subreddit').avg()
 
     comments.createOrReplaceTempView('commentsView') # name of the table/view is commentsView
     averages = spark.sql("""
     SELECT _subreddit, AVG(_score)
     FROM commentsView
-    GROUP BY subreddit
+    GROUP BY _subreddit
 """)
     averages.show()
 
-    # averages.write.save(output, format='json', mode='overwrite')
+    averages.write.save(output, format='json', mode='overwrite')
  
 if __name__ == "__main__":
     main()

@@ -16,27 +16,35 @@ output = sys.argv[2]
 
 def extract_hour_from_filename(fname):
 	return (fname[-18: -7])
-
-schema = StructType([
+def main():
+	
+	schema = StructType([
     StructField('LANG', StringType(), False),
     StructField('TITLE', StringType(), False),
     StructField('VIEWS', LongType(), False),
     StructField('BYTES', LongType(), False)
     ])
 
-df = spark.read.csv(inputs, schema=schema, sep = " ").withColumn('filename', functions.input_file_name())
-# df.show()
-hour_udf = udf(extract_hour_from_filename, StringType())
-df = df.select('LANG', 'TITLE', 'VIEWS', 'BYTES', hour_udf("filename").alias("HOUR"))
+	df = spark.read.csv(inputs, schema=schema, sep = " ").withColumn('filename', functions.input_file_name())
+	# df.show()
+	hour_udf = udf(extract_hour_from_filename, StringType())
+	df = df.select('LANG', 'TITLE', 'VIEWS', 'BYTES', hour_udf("filename").alias("HOUR"))
 
-df = df.where(df.LANG == 'en')
-df = df.where((~ df.TITLE.startswith('Main_Page')))
-df = df.where((~ df.TITLE.startswith('Special:')))
-# df.show()
+	df = df.where(df.LANG == 'en')
+	df = df.where((~ df.TITLE.startswith('Main_Page')))
+	df = df.where((~ df.TITLE.startswith('Special:')))
+	# df.show()
 
-df_max_views = df.groupby('HOUR').agg(max("VIEWS").alias('MAX_VIEW'))
+	df_max_views = df.groupby('HOUR').agg(max("VIEWS").alias('MAX_VIEW'))
 
-cond = [df['HOUR'] == df_max_views['HOUR'], df['VIEWS'] == df_max_views['MAX_VIEW']]
-result = df.join(df_max_views, cond, 'inner').select(df['HOUR'], df['TITLE'], df['VIEWS']).sort(col("HOUR"))
+	cond = [df['HOUR'] == df_max_views['HOUR'], df['VIEWS'] == df_max_views['MAX_VIEW']]
+	result = df.join(df_max_views, cond, 'inner').select(df['HOUR'], df['TITLE'], df['VIEWS']).sort(df['HOUR'])
 
-result.show()
+	# result.show()
+
+	result.write.csv(output)
+
+if __name__ == "__main__":
+    main()
+
+

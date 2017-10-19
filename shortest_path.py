@@ -1,3 +1,9 @@
+# TODO
+# 1. save intermediate output to files
+# 2. save final output to file
+# 3. use cache()
+# 4. optional reduce loop where applicable. 1 -> 6 
+
 import sys
 from pyspark.sql import SparkSession, Row
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
@@ -53,9 +59,14 @@ def isRowExisting(df, val_n):
 	else:
 		return False
 
+def write_int_output(i, df):
+	print('iter: ', i)
+	df.show()
+	# knownpaths.write.save(output + '/iter' + str(i), format='json')
 
-def traverse_graph_for_destintion(n,s,d, knownpaths):
+def traverse_graph_for_destination(n,s,d, knownpaths, i):
 	if(d == 6):
+		write_int_output(i, knownpaths)
 		return(noMatchFound(knownpaths))
 
 	childs = getChildForNode(n)
@@ -64,13 +75,20 @@ def traverse_graph_for_destintion(n,s,d, knownpaths):
 				if isRowExisting(knownpaths, c) == False:
 					knownpaths = insertRow(c , n, d +1 , knownpaths)
 					# TODO: we need to show intermediate output here
+					# knownpaths.write.save(output + '/iter' + str(i), format='json')
+					# print('iter: ', i)
+					# knownpaths.show()
 					if(c == dest_node):
 						# print('match found')
+						write_int_output(i, knownpaths)
 						return(knownpaths)
+			
+			write_int_output(i, knownpaths)
 
 			for c in childs.collect():
-				return(traverse_graph_for_destintion(c, n, d+1, knownpaths))
+				return(traverse_graph_for_destination(c, n, d+1, knownpaths, i+1))
 	else:
+		write_int_output(i, knownpaths)
 		return(noMatchFound(knownpaths))
 
 def get_source_for_node(val, resulted_df, l_output):
@@ -79,15 +97,15 @@ def get_source_for_node(val, resulted_df, l_output):
 	l_output.append(result)
 	if(result != source_node):
 		return(get_source_for_node(result, resulted_df, l_output))
-
-	return(l_output)
+	else:
+		return(l_output)
 
 
 
 def main():
 		
 	knownpaths = sqlContext.createDataFrame(sc.emptyRDD(), schema)
-	knownpaths = traverse_graph_for_destintion(source_node, source_node, 0, knownpaths)
+	knownpaths = traverse_graph_for_destination(source_node, source_node, 0, knownpaths, i= 1)
 	knownpaths.show()
 
 	if len (knownpaths.take(1)) != 0 :
@@ -101,7 +119,7 @@ if __name__ == "__main__":
 		print("source and destination are the same")
 		exit()
 
-	textinput = sc.textFile(inputs)
+	textinput = sc.textFile(inputs + 'links-simple-sorted.txt')
 	graphedges_rdd = textinput.map(lambda line: get_graphedges(line)).filter(lambda x: x is not None).flatMap(lambda x: x)#.coalesce(1)
 	graphedges = graphedges_rdd.toDF(['source', 'destination']).cache()
 	graphedges.show()
